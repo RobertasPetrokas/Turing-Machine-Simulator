@@ -1,0 +1,202 @@
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <string>
+#include <thread>
+#include <Windows.h>
+#include <mutex>
+#include <chrono> 
+
+using namespace std;
+mutex mtx;
+
+
+struct rules
+{
+    string state;
+    char symbol;
+    char newsymbol;
+    char direction;
+    string newstate;
+};
+
+void cls(int y) {
+    COORD coord;
+    coord.X = 0;
+    coord.Y = y;
+    SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), coord);
+}
+
+void input(struct rules taisykles[100], string& tape, int& head, int& lineCount, string filename) {
+
+    fstream fd(filename.c_str());
+    if (!fd)
+    {
+        cout << "Failas nerastas";
+        exit(EXIT_FAILURE);
+    }
+    else
+    {
+        while (fd.is_open())
+        {
+            int unused(0);
+            if (unused == 0)
+            {
+                for (int i(0); i < 1; i++)
+                {
+                    fd >> tape;
+                    fd >> head;
+                    unused++;
+                }
+            }
+
+            int i(0);
+            while (!fd.eof())
+            {
+                fd >> taisykles[i].state;
+                fd >> taisykles[i].symbol;
+                fd >> taisykles[i].newsymbol;
+                fd >> taisykles[i].direction;
+                fd >> taisykles[i].newstate;
+                i++;
+                lineCount++;
+
+                if (fd.eof()) {
+                    fd.close();
+                }
+            }
+        }
+    }
+}
+
+void start(struct rules taisykles[], string tape, int head, int lineCount, string filename, int y) {
+   
+    input(taisykles, tape, head, lineCount, filename);
+    bool test = true;
+    string state = "0";
+    head--;
+    while (test == true)
+    {
+        mtx.lock();
+        cls(y);
+        cout << tape << endl;
+        //Sleep(2);
+        mtx.unlock();
+
+
+        for (int i(0); i < lineCount; i++)
+        {
+            if (taisykles[i].state == state && taisykles[i].symbol == tape[head])
+            {
+                tape[head] = taisykles[i].newsymbol;
+                state = taisykles[i].newstate;
+                if (taisykles[i].direction == 'R')
+                {
+                    head++;
+                    break;
+                }
+                else
+                {
+                    head--;
+                    break;
+                }
+                if (head < 0) {
+                    exit(EXIT_FAILURE);
+                }
+            }
+        }
+        int temp(0);
+        for (int i(0); i < lineCount; i++) {
+            if (taisykles[i].state == state) {
+                temp++;
+            }
+        }
+        if (temp < 1) {
+            test = false;
+        }
+
+    }
+
+}
+
+
+
+int main()
+{
+    rules taisykles[100];
+    int head(0);
+    string tape;
+    int lineCount(0);
+    string filename1, filename2, filename3, filename4;
+    int y1(0), y2(3), y3(6), y4(9);
+    int choice;
+    bool tmOn = true;
+
+    system("CLS");
+    while (tmOn) {
+        cout << "-------------------------------------------------" << endl
+            << " 1 - Paleisti viena Turing masina." << endl
+            << " 2 - Paleisti 4 turing masinas." << endl
+            << " 3 - Baigti darba." << endl
+            << " Iveskite savo pasirinkima ir spauskite ENTER: ";
+        cin >> choice;
+
+        switch (choice)
+        {
+        case 1:
+        {
+            system("CLS");
+            cout << "Iveskite failo pavadinima(su .txt): ";
+            cin >> filename1;
+            filename1 += ".txt";
+            system("cls");
+            thread t1(start, taisykles, tape, head, lineCount, filename1, y1);
+            t1.join();
+            break;
+
+        }
+        case 2:
+        {
+            system("CLS");
+            cout << "Iveskite pirmo failo pavadinima(su .txt): ";
+            cin >> filename1;
+            filename1 += ".txt";
+            cout << "Iveskite antro failo pavadinima(su .txt): ";
+            cin >> filename2;
+            filename2 += ".txt";
+            cout << "Iveskite trecio failo pavadinima(su .txt): ";
+            cin >> filename3;
+            filename3 += ".txt";
+            cout << "Iveskite ketvirto failo pavadinima(su .txt): ";
+            cin >> filename4;
+            filename4 += ".txt";
+
+
+            system("cls");
+            thread t1(start, taisykles, tape, head, lineCount, filename1, y1);
+            thread t2(start, taisykles, tape, head, lineCount, filename2, y2);
+            thread t3(start, taisykles, tape, head, lineCount, filename3, y3);
+            thread t4(start, taisykles, tape, head, lineCount, filename4, y4);
+            t1.join();
+            t2.join();
+            t3.join();
+            t4.join();
+            break;
+        }
+        case 3:
+        {
+            system("cls");
+            cout << "Darbas baigtas." << endl;
+            tmOn = false;
+            break;
+        }
+        default:
+            system("cls");
+            cout << "Neteisingas pasirinkimas." << endl
+                << "Pasirinkite is naujo." << endl;
+            break;
+
+        }
+
+    }
+}
